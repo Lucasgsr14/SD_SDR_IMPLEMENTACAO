@@ -1,6 +1,6 @@
 #include<avr/io.h>
 
-void configuracaoADC(){
+static inline void configuracaoADC(){
 /*
 	O objetivo dessa função é configurar a referência de voltagem pro ADC, o prescaler do clock (supõe-se 2MHz),
 e a forma com que o valor convertido será registrado. Além disso, realiza-se uma conversão inicial para "gastar-
@@ -23,7 +23,7 @@ conversaoADC().
     while ((ADCSRA & (1<<ADSC)) != 0);
 }
 
-int conversaoADC(char canal){
+static inline int conversaoADC(char canal){
 /*
 Essa função realiza a amostragem de um valor no ADC. Seu argumento é o canal a ser usado
 (deve ser usado um char pois esse dado só consome um byte de memória).
