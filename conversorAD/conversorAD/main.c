@@ -32,9 +32,9 @@ Primeiro realiza-se a multiplexação do canal utilizado, depois inicia-se a conve
 Espera-se concluir e retorna-se o valor inteiro.
 */	
 	if(canal == '0')
-		ADMUX = (0<<MUX2) | (0<<MUX1) | (0<<MUX0);
+		ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (0<<MUX3) | (0<<MUX2) | (0<<MUX1) | (0<<MUX0);
 	else
-		ADMUX = (0<<MUX2) | (0<<MUX1) | (1<<MUX0);
+		ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (0<<MUX3) | (0<<MUX2) | (0<<MUX1) | (1<<MUX0);
 	
 	int valor_convertido;
     /* start a new conversion on chosen channel */
@@ -57,6 +57,7 @@ int main(void)
     /* Scan for changes on A/D input pin in an infinite loop */
     while(1)
     {
+		analog = conversaoADC('1');
 		analog = conversaoADC('0');
 	}
 	
