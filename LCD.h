@@ -10,7 +10,7 @@
 #define LCD_H	   
 #include <avr/io.h>
 
-/* Funções para chamar na main:
+/* FunÃ§Ãµes para chamar na main:
    setLCD()
    valueP(int)
    showP()
@@ -40,7 +40,7 @@ void clk(int num){
 }	
 
 void setLCD(){
-	// Função para fazer a configuração inicial do LCD.
+	// FunÃ§Ã£o para fazer a configuraÃ§Ã£o inicial do LCD.
 	DDRB = 0xFF;
 	PORTB = 0x00;
 	dly();
@@ -79,8 +79,8 @@ void setNumber(int num){
 }
 	
 void valueP(int num){
-	//Função para mostrar o valor da portadora
-	PORTB = 0b00100000; //Mover para posição 0B
+	//FunÃ§Ã£o para mostrar o valor da portadora
+	PORTB = 0b00100000; //Mover para posiÃ§Ã£o 0B
 	clk(PORTB);
 	PORTB = 0b00101100;
 	clk(PORTB);
@@ -106,8 +106,8 @@ void valueP(int num){
 }
 
 void valueF(int num){
-	//Função para mostrar o valor da frequência
-	PORTB = 0b00100000; //Mover para posição 0B
+	//FunÃ§Ã£o para mostrar o valor da frequÃªncia
+	PORTB = 0b00100000; //Mover para posiÃ§Ã£o 0B
 	clk(PORTB);
 	PORTB = 0b00101100;
 	clk(PORTB);
@@ -138,8 +138,8 @@ void valueF(int num){
 }
 
 void valueMsgAnalog(int num){
-	//Função para mostrar o valor da mensagem na modulação analógica
-	PORTB = 0b00110000; //Mover para posição 45
+	//FunÃ§Ã£o para mostrar o valor da mensagem na modulaÃ§Ã£o analÃ³gica
+	PORTB = 0b00110000; //Mover para posiÃ§Ã£o 45
 	clk(PORTB);
 	PORTB = 0b00010100;
 	clk(PORTB);
@@ -170,8 +170,8 @@ void valueMsgAnalog(int num){
 }
 
 void valueMsgDigital(int num){
-	//Função para mostrar o valor da mensagem na modulação digital
-	PORTB = 0b00110000; //Mover para posição 45
+	//FunÃ§Ã£o para mostrar o valor da mensagem na modulaÃ§Ã£o digital
+	PORTB = 0b00110000; //Mover para posiÃ§Ã£o 45
 	clk(PORTB);
 	PORTB = 0b00010100;
 	clk(PORTB);
@@ -243,8 +243,8 @@ void valueMsgDigital(int num){
 }
 
 void showF(){
-	//Função para mostrar os caracteres da parte de frequência. Não chamar na main
-	PORTB = 0b00100000; //Mover para posição 09
+	//FunÃ§Ã£o para mostrar os caracteres da parte de frequÃªncia. NÃ£o chamar na main
+	PORTB = 0b00100000; //Mover para posiÃ§Ã£o 09
 	clk(PORTB);
 	PORTB = 0b00100100;
 	clk(PORTB);
@@ -259,7 +259,7 @@ void showF(){
 	PORTB = 0b01101000;
 	clk(PORTB);
 	
-	defPad3();
+	defPad(3);
 	
 	PORTB = 0b01010000; //H
 	clk(PORTB);
@@ -285,8 +285,8 @@ void showTb(){
 }
 
 void showP(){
-	//Função para mostrar os caracteres da parte da portadora. Deve ser chamada na main quando for pro estado de seleção da portadora
-	PORTB = 0b00100000; //Mover para posição 09
+	//FunÃ§Ã£o para mostrar os caracteres da parte da portadora. Deve ser chamada na main quando for pro estado de seleÃ§Ã£o da portadora
+	PORTB = 0b00100000; //Mover para posiÃ§Ã£o 09
 	clk(PORTB);
 	PORTB = 0b00100100;
 	clk(PORTB);
@@ -322,7 +322,7 @@ void showP(){
 }
 
 void defPad(int num){
-	//Função paara mostrar "-" no lugar dos números. Não chamar na main
+	//FunÃ§Ã£o paara mostrar "-" no lugar dos nÃºmeros. NÃ£o chamar na main
 	for(int i=0;i<num; i++){
 		PORTB = 0b01001000; //---
 		clk(PORTB);
@@ -332,7 +332,7 @@ void defPad(int num){
 }
 
 void dot(){
-	//Ponto. Não chamar na main
+	//Ponto. NÃ£o chamar na main
 	PORTB = 0b01001000; //.
 	clk(PORTB);
 	PORTB = 0b01111000;
@@ -340,7 +340,7 @@ void dot(){
 }
 
 void blank(){
-	//Limpar espaço. Não chamar na main
+	//Limpar espaÃ§o. NÃ£o chamar na main
 	for(int i=0; i<8; i++){
 		PORTB = 0b01001000; //Blank
 		clk(PORTB);
@@ -350,8 +350,8 @@ void blank(){
 }
 
 void selMode(int modulacao){
-	//Função que faz a seleção do tipo de modulação
-	PORTB = 0b00100000; //Mover para posição 05
+	//FunÃ§Ã£o que faz a seleÃ§Ã£o do tipo de modulaÃ§Ã£o
+	PORTB = 0b00100000; //Mover para posiÃ§Ã£o 05
 	clk(PORTB);
 	PORTB = 0b00010100;
 	clk(PORTB); 
@@ -372,7 +372,7 @@ void selMode(int modulacao){
 		PORTB = 0b01000000;
 		clk(PORTB);
 		
-		PORTB = 0b00110000; //Mover para posição
+		PORTB = 0b00110000; //Mover para posiÃ§Ã£o
 		clk(PORTB);
 		PORTB = 0b00010100;
 		clk(PORTB);
@@ -396,7 +396,7 @@ void selMode(int modulacao){
 		PORTB = 0b01000000;
 		clk(PORTB);
 
-		PORTB = 0b00110000; //Mover para posição
+		PORTB = 0b00110000; //Mover para posiÃ§Ã£o
 		clk(PORTB);
 		PORTB = 0b00010100;
 		clk(PORTB);
@@ -421,7 +421,7 @@ void selMode(int modulacao){
 		PORTB = 0b01101100;
 		clk(PORTB);
 		
-		PORTB = 0b00110000; //Mover para posição
+		PORTB = 0b00110000; //Mover para posiÃ§Ã£o
 		clk(PORTB);
 		PORTB = 0b00010100;
 		clk(PORTB);
@@ -451,7 +451,7 @@ void selMode(int modulacao){
 		PORTB = 0b01101100;
 		clk(PORTB);
 		
-		PORTB = 0b00110000; //Mover para posição
+		PORTB = 0b00110000; //Mover para posiÃ§Ã£o
 		clk(PORTB);
 		PORTB = 0b00010100;
 		clk(PORTB);
@@ -467,7 +467,7 @@ void selMode(int modulacao){
 }
 
 void shiftCursorRight(){
-	//Avnaçar uma casa para a direita. Não chamar na main
+	//AvnaÃ§ar uma casa para a direita. NÃ£o chamar na main
 	PORTB = 0b00000100; //Shift cursor right
 	clk(PORTB);
 	PORTB = 0b00011000;
@@ -475,7 +475,7 @@ void shiftCursorRight(){
 }
 
 void initialPage(){
-	//Função que seta a "página inicial" do LCD
+	//FunÃ§Ã£o que seta a "pÃ¡gina inicial" do LCD
 	PORTB = 0b01010000; //M
 	clk(PORTB);
 	PORTB = 0b01110100;
