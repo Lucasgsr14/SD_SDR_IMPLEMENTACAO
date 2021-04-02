@@ -75,14 +75,14 @@ Disassembly of section .text:
 #include<avr/io.h>
 
 void configuracaoADC(){
-	/* Setup ADC to use int AVcc
-    and select temp sensor channel */
+	/* Setup ADC to use AVcc
+    and select channel ADC0*/
     ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (0<<MUX3) | (0<<MUX2) | (0<<MUX1) | (0<<MUX0);
   80:	80 e4       	ldi	r24, 0x40	; 64
   82:	80 93 7c 00 	sts	0x007C, r24	; 0x80007c <__TEXT_REGION_LENGTH__+0x7f807c>
 
     /* Set conversion time to 
-    112usec = [(1/(8Mhz / 64)) * (14 ADC clocks  per conversion)]
+	104usec	= [(1/2MHz/16)*(13 ADC clocks per conversion)]
      and enable the ADC*/
     ADCSRA = (1<<ADPS2) | (1<<ADPS1) | (1<<ADEN);
   86:	ea e7       	ldi	r30, 0x7A	; 122
@@ -151,7 +151,6 @@ int main(void)
     /* Scan for changes on A/D input pin in an infinite loop */
     while(1)
     {
-
 		analog = conversaoADC();
   d0:	0e 94 4f 00 	call	0x9e	; 0x9e <conversaoADC>
   d4:	fd cf       	rjmp	.-6      	; 0xd0 <main+0x4>

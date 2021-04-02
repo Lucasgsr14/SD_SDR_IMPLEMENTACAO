@@ -1,12 +1,12 @@
 #include<avr/io.h>
 
 void configuracaoADC(){
-	/* Setup ADC to use int AVcc
-    and select temp sensor channel */
+	/* Setup ADC to use AVcc
+    and select channel ADC0*/
     ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (0<<MUX3) | (0<<MUX2) | (0<<MUX1) | (0<<MUX0);
 
     /* Set conversion time to 
-    112usec = [(1/(8Mhz / 64)) * (14 ADC clocks  per conversion)]
+	104usec	= [(1/2MHz/16)*(13 ADC clocks per conversion)]
      and enable the ADC*/
     ADCSRA = (1<<ADPS2) | (1<<ADPS1) | (1<<ADEN);
 
