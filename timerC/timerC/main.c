@@ -6,7 +6,6 @@
  */ 
 
 #include <avr/io.h>
-#include <stdio.h>
 
 /*
 Quantos pulsos serão necessários para se medir a passagem do período 
@@ -21,6 +20,10 @@ Entretanto, iremos só ler a metade do período. Isso exige 20 pulsos,
 aproximadamente.
 
 */
+
+// a configuração a seguir, de port, é só pra teste
+DDB0 = 1;
+
 
 static inline char controleTimer0(char ligaDesliga){
 /*
@@ -44,12 +47,18 @@ static inline char controleTimer0(char ligaDesliga){
 
 int main(void){
     /* Replace with your application code */
-	char resultado;
-	resultado = controleTimer0('1'); // liga o timer
-    while(resultado<20){
-		asm("nop");
-    }
-	resultado = controleTimer0('0');
-	return 0;
+	while(1){
+		char resultado= 0;
+		resultado = controleTimer0('1'); // liga o timer
+		PORTB0 = 1; // liga o pino B0, só pra teste
+		while(resultado!='a'){
+			asm("nop");
+			resultado = controleTimer0('1');
+		}
+		resultado = controleTimer0('0'); 
+		PORTB0 = 0; // desliga o pino B0, só pra teste
+		TCNT0 = 0;
+		return 0;
+	}
 }
 
