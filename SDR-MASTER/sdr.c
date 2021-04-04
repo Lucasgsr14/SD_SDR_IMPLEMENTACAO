@@ -121,17 +121,13 @@ EnvioSucesso();
 }
 }
 
-			static inline void AjusteModulacao(){
-	
-			static uint16_t lastDetect = 0; // guarda a ultima leitura do Potenciometro
+static inline void AjusteModulacao(){
+				
 			statusBotoes[0] = 0; // zero a flag do botao M
-	
-			lastDetect = lerPot(); // FACO A LEITURA DO POT
+			
 	
 			while(statusBotoes[2] != 1){ // ENQUANTO O BOTAO P N FOR PRESSIONADO FICA NESSE LOOP
-			detectPot = lerPot();
-			//selMode(detectPot);
-			     
+				     
 		
 			AtualizaModulcao();
 
@@ -165,11 +161,11 @@ valueP(AtualizaPortadora()); // para mostrar no display
 }
 
 static inline uint16_t AtualizaPortadora(){
-	static uint16_t Pot;
+	
 	EN = 1;
 	
-	Pot = lerPot();
-	freqPortadora = (((45.0/1023.0)*Pot) + 5);
+	detectPot = lerPot();
+	freqPortadora = (((45.0/1023.0)*detectPot) + 5);
 	
 	return freqPortadora;		
 }
