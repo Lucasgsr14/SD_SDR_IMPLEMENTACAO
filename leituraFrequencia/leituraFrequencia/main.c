@@ -7,10 +7,13 @@
 
 #include <avr/io.h>
 
+
+
 int amostraPassadaCentradaEmZero = 0;
 uint8_t flagPassagemPorZero=0;
 int analog;
 float frequenciaCalculada = -1;
+int amostraCentradaEmZero = 0;
 
 static inline void configuracaoADC(){
 /*
@@ -83,31 +86,40 @@ static inline uint8_t controleTimer0( uint8_t ligaDesliga){
 }
 
 static inline float leituraFrequencia(int amostra){
-	float frequencia = -1;
-	int amostraCentradaEmZero = amostra - (1024/2);
+//	float frequencia = -1;
+	//amostraCentradaEmZero = amostra - (1024/2);
 	uint8_t valorTimer = 0;
-	if((amostraCentradaEmZero*amostraPassadaCentradaEmZero < 0) && (flagPassagemPorZero == 0)){
+//	(amostraCentradaEmZero*amostraPassadaCentradaEmZero < 0)
+	if((amostra<=512) && (flagPassagemPorZero == 0)){
 		flagPassagemPorZero = 1;
 		valorTimer = controleTimer0(1);
+		PORTB = 0;
 	}
-	if((amostraCentradaEmZero*amostraPassadaCentradaEmZero<0)&&(flagPassagemPorZero == 1)){
-		valorTimer = controleTimer0(0);
-		frequencia = 1.0/(2.0*valorTimer*2000000.0);
-		TCNT0 = 0;
-		flagPassagemPorZero = 0;
+	else{ 
+		if((amostra>=512)&&(flagPassagemPorZero == 1)){
+			valorTimer = controleTimer0(0);
+			//frequenciaCalculada = 1.0/(2.0*valorTimer*2000000.0);
+			frequenciaCalculada = (1000000.0/(2*valorTimer*1024.0));
+			TCNT0 = 0;
+			flagPassagemPorZero = 0;
+			PORTB = 0;
+		}
 	}
+
 	amostraPassadaCentradaEmZero = amostraCentradaEmZero;
-	return frequencia;	
+	return frequenciaCalculada;	
 }
 
 int main(void){
+	CLKPR |= (1<<CLKPCE)|(1<<CLKPS1);
     /* Replace with your application code */
-	
+	DDRB |= (1<<DDB0);
 	configuracaoADC();
     while (1){
+		PORTB = 1;
 		analog = conversaoADC('0');
 		analog = analog + 0;
-		//frequenciaCalculada = leituraFrequencia(analog);
+		frequenciaCalculada = leituraFrequencia(analog);
     }
 }
 
