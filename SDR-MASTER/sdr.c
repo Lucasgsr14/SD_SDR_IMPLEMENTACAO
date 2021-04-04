@@ -18,7 +18,9 @@ uint8_t EN = 0;
 uint8_t mode;
 uint16_t detectPot = 0;
 uint16_t freqPortadora;
+double t=0;
 
+int sampleADC;
 //************** PROTOTIPOS DE FUNCOES *********************************
 static inline void run();
 
@@ -36,6 +38,14 @@ static inline uint16_t AtualizaPortadora();
 
 static inline uint16_t lerPot();
 
+static inline int AM_r2rEntrada(uint8_t s_t, int fc, double t);
+static inline int FM_r2rEntrada(uint8_t s_t, int fm, int fc, double t);
+static inline int ASK_r2rEntrada(uint8_t s_t, int fm, int fc, double t);
+static inline int FSK_r2rEntrada(uint8_t s_t, int fm, int fc, double t);
+static inline uint8_t mapeamento(uint16_t amostraAD);
+
+static inline void configuracaoADC();
+static inline int conversaoADC(char canal);
 
 //************* VETOR DE INTERRUPCAO PCINT PARA OS BOTOES **************************
 ISR(PCINT1_vect) { // Vetor de Interrupçao do PORTC
@@ -77,13 +87,14 @@ initialPage();
 	
 //PC4 = P, PC3 = R PC2 = M
 DDRC &= (~(1<<PC4) |  ~(1<<PC3) |  ~(1<<PC2)); // DEFINE COMO ENTRADA OS BOTÕES
-	
+DDRC |= (1<<PC5);	
 
 // PB1 = led 
 PORTB &= ~(1 << PB1); // 0 - vermelho e 1 - azul
-	
-ADCSRA  = 0x90;                //liga conversão AD, fator de divisão de 2
-ADMUX   = 0x41;                //tensão de ref. de 5V, canal A1 0100 0001
+
+configuracaoADC();	
+//ADCSRA  = 0x90;                //liga conversão AD, fator de divisão de 2
+//ADMUX   = 0x41;                //tensão de ref. de 5V, canal A1 0100 0001
 	
 PORTC |= (1 << PORTC2); // PC2 = INPUT_PULLUP
 PORTC |= (1 << PORTC3); // PC3 = INPUT_PULLUP
@@ -100,6 +111,9 @@ ultimaLeitura_PINC = PINC;	// guarda a leitura inicial do PORTC
 sei();
 
 PORTD &= ~(1<<PD0);	
+
+
+
 while(1){
 	
 		run();
@@ -116,9 +130,11 @@ statusBotoes[1] = 0;// limpa a flag do botao R
 while ((statusBotoes[0] || EN) != 1){}
 
 while ((statusBotoes[0] || !EN) != 1){	// BOTAO M NAO PRESSIONADO E EN IGUAL 1 PODE ENVIAR!
+
 EnvioSucesso();
 
 }
+PORTD = 0x00;
 }
 
 static inline void AjusteModulacao(){
@@ -152,12 +168,13 @@ static inline void AjustePortadora(){
 	
 statusBotoes[2] = 0; // LIMPA A FLAG DO BOTAO P	
 
-	
+	showP();
 while(statusBotoes[1] != 1){ // Verifica se o botao R foi pressionado.
-		
+	
 valueP(AtualizaPortadora()); // para mostrar no display
 
 	}
+	showF();
 }
 
 static inline uint16_t AtualizaPortadora(){
@@ -172,12 +189,39 @@ static inline uint16_t AtualizaPortadora(){
 
 static inline void EnvioSucesso(){
 	PORTB |= (1 << PB1); // led azul
+	PORTC |= (1<<PC5);
+	sampleADC = conversaoADC('0');
+	
+	switch(mode){
+		
+		case 0: 
+		PORTD = AM_r2rEntrada(mapeamento(sampleADC), 10,  t);
+		
+		break;
+		case 1:
+		PORTD = FM_r2rEntrada(mapeamento(sampleADC), 1, 10, t);
+		
+		break;
+		case 2:
+		PORTD = ASK_r2rEntrada(mapeamento(sampleADC), 1, 10, t);
+		
+		break;
+		case 3:
+		PORTD = FSK_r2rEntrada(mapeamento(sampleADC), 1, 100, t);
+		
+		break;
+				
+	}
+	//t+=0.000125;// AM
+	 t+=0.000525;
+	
 }
 
 static inline uint16_t lerPot()
 {
 static uint16_t analogL, analogH, analog;    //variáveis locais para valores ADC
-	
+
+ADMUX  |= (1<<MUX0);	
 ADCSRA |= (1<<ADSC);                    //inicia conversão ad
 	
 while(!(ADCSRA&=~(1<<ADIF)));           //aguarda conversão ad completar
@@ -192,3 +236,90 @@ analog  = (analogH<<8) | analogL;       //calcula para valor de 10 bits
 return analog;                          //retorna resultado da conversão 0 - 1023
 	
 } //end ad_conv
+static inline uint8_t mapeamento(uint16_t amostraAD){
+	return (255.0*amostraAD/1023.0);
+}
+static inline int AM_r2rEntrada(uint8_t s_t, int fc, double t){
+	float s=0;
+	s = (s_t/127.5-1) * sin(2*M_PI*fc*t);
+	//cout<<"cos(sinalSenoidal): "<<s_t/255.0<<" tempo: "<<t<<'\n';
+	//cout<<"cos: "<<cos(2*M_PI*fc*t)<<" interior: "<<2*M_PI*fc*t<<" tempo: "<<t<<'\n';
+	return  (128 + (127.5 * s));
+}
+static inline int FM_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
+	float s=0;
+	s = sin(2*M_PI*fc*t + (1/fm)*(s_t/127.5-1));
+	PORTC &= ~(1<<PC5);
+	return  128 + (int)(127.5 * s);
+}
+static inline int ASK_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
+	float s=0;
+	if(s_t > 128){
+		s = 128 + (127.5 * sin(2*M_PI*fc*t));
+	}
+	else{
+		s = 127;
+	}
+	return s;
+}
+static inline int FSK_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
+	float s=0;
+	if(s_t > 128){
+		s = 128 + (127.5 * sin(2*M_PI*fc*t));
+	}
+	else{
+		s = 128 + (127.5 * sin(2*M_PI*(fc/10)*t));
+	}
+	return s;
+}
+
+
+static inline void configuracaoADC(){
+/*
+	O objetivo dessa função é configurar a referência de voltagem pro ADC, o prescaler do clock (supõe-se 2MHz),
+e a forma com que o valor convertido será registrado. Além disso, realiza-se uma conversão inicial para "gastar-
+se" os 25 pulsos iniciais. Essa função deve ser chamada no setup. Uma vez chamada, basta-se chamar a função
+conversaoADC().	
+*/
+	/* Setup ADC to use AVcc
+    and select channel ADC0*/
+    ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (0<<MUX3) | (0<<MUX2) | (0<<MUX1) | (0<<MUX0);
+
+    /* Set conversion time to 
+	104usec	= [(1/2MHz/16)*(13 ADC clocks per conversion)]
+     and enable the ADC*/
+    ADCSRA = (1<<ADPS2) | (1<<ADPS1) | (1<<ADEN);
+
+    /* Perform Dummy Conversion to complete ADC init */
+    ADCSRA |= (1<<ADSC);
+
+    /* wait for conversion to complete */
+    while ((ADCSRA & (1<<ADSC)) != 0);
+}
+
+static inline int conversaoADC(char canal){
+/*
+Essa função realiza a amostragem de um valor no ADC. Seu argumento é o canal a ser usado
+(deve ser usado um char pois esse dado só consome um byte de memória).
+Primeiro realiza-se a multiplexação do canal utilizado, depois inicia-se a conversão.
+Espera-se concluir e retorna-se o valor inteiro.
+*/	
+
+	if(canal == '0')
+		ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (0<<MUX3) | (0<<MUX2) | (0<<MUX1) | (0<<MUX0);
+	else
+		ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (0<<MUX3) | (0<<MUX2) | (0<<MUX1) | (1<<MUX0);
+	
+	int valor_convertido;
+    /* start a new conversion on chosen channel */
+    ADCSRA |= (1<<ADSC);
+
+    /* wait for conversion to complete */
+    while ((ADCSRA & (1<<ADSC)) != 0)
+    ;
+
+    ADCSRA |= (1<<ADIF); // pause conversion (?)	
+	//valor_convertido =  (ADCH<<8) | ADCL;
+	valor_convertido = ADC;
+	return valor_convertido;
+}
