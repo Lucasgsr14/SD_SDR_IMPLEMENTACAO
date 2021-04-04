@@ -21,44 +21,38 @@ aproximadamente.
 
 */
 
-// a configuração a seguir, de port, é só pra teste
-DDB0 = 1;
 
-
-static inline char controleTimer0(char ligaDesliga){
+static inline uint8_t controleTimer0( uint8_t ligaDesliga){
 /*
 	A função controleTimer0 serve pra controle do Timer0.
 	O argumento da função é um char pra não ocupar tanta 
 	memória. Caso seja '0', o timer é desligado. 
 	Caso seja '1', ele liga.
 */	
-	char pulsosTimer0;
+	uint8_t pulsosTimer0;
 	TCCR0A = 0; // normal mode
-	if (ligaDesliga == '0'){ // desliga o timer
+	if (ligaDesliga == 0){ // desliga o timer
 		TCCR0B = 0;
-		pulsosTimer0 = TCNT0;
-		return pulsosTimer0;
 	}
 	else{ // liga o timer
-		TCCR0B = 5; // prescaler = 1024	
-		return 'a';
+		TCCR0B = 5; // prescaler = 1024
 	}
+	
+	pulsosTimer0 = TCNT0;
+	return pulsosTimer0;
 }
 
 int main(void){
-    /* Replace with your application code */
+	// a configuração a seguir, de port, é só pra teste
+	DDRD = 0xFF;
+	uint8_t resultado;
+	while(resultado <25){
+		resultado = controleTimer0(1);
+		PORTD = resultado;
+	}
 	while(1){
-		char resultado= 0;
-		resultado = controleTimer0('1'); // liga o timer
-		PORTB0 = 1; // liga o pino B0, só pra teste
-		while(resultado!='a'){
-			asm("nop");
-			resultado = controleTimer0('1');
-		}
-		resultado = controleTimer0('0'); 
-		PORTB0 = 0; // desliga o pino B0, só pra teste
-		TCNT0 = 0;
-		return 0;
+		resultado = controleTimer0(0);
+		PORTD = resultado;		
 	}
 }
 

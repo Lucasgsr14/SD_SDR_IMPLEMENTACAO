@@ -3,29 +3,29 @@ timerC.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .data         00000000  00800100  00800100  000000ea  2**0
+  0 .data         00000000  00800100  00800100  000000f6  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  1 .text         00000096  00000000  00000000  00000054  2**1
+  1 .text         000000a2  00000000  00000000  00000054  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .comment      00000030  00000000  00000000  000000ea  2**0
+  2 .comment      00000030  00000000  00000000  000000f6  2**0
                   CONTENTS, READONLY
-  3 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  0000011c  2**2
+  3 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  00000128  2**2
                   CONTENTS, READONLY
-  4 .debug_aranges 00000020  00000000  00000000  0000015c  2**0
+  4 .debug_aranges 00000020  00000000  00000000  00000168  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   0000070c  00000000  00000000  0000017c  2**0
+  5 .debug_info   00000708  00000000  00000000  00000188  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 0000066a  00000000  00000000  00000888  2**0
+  6 .debug_abbrev 0000066d  00000000  00000000  00000890  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   000001f3  00000000  00000000  00000ef2  2**0
+  7 .debug_line   00000221  00000000  00000000  00000efd  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  00000024  00000000  00000000  000010e8  2**2
+  8 .debug_frame  00000024  00000000  00000000  00001120  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    0000036f  00000000  00000000  0000110c  2**0
+  9 .debug_str    0000036f  00000000  00000000  00001144  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    0000002a  00000000  00000000  0000147b  2**0
+ 10 .debug_loc    00000046  00000000  00000000  000014b3  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_ranges 00000010  00000000  00000000  000014a5  2**0
+ 11 .debug_ranges 00000010  00000000  00000000  000014f9  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -66,51 +66,84 @@ Disassembly of section .text:
   70:	de bf       	out	0x3e, r29	; 62
   72:	cd bf       	out	0x3d, r28	; 61
   74:	0e 94 40 00 	call	0x80	; 0x80 <main>
-  78:	0c 94 49 00 	jmp	0x92	; 0x92 <_exit>
+  78:	0c 94 4f 00 	jmp	0x9e	; 0x9e <_exit>
 
 0000007c <__bad_interrupt>:
   7c:	0c 94 00 00 	jmp	0	; 0x0 <__vectors>
 
 00000080 <main>:
+	return pulsosTimer0;
+}
+
+int main(void){
+	// a configuração a seguir, de port, é só pra teste
+	DDRD = 0xFF;
+  80:	9f ef       	ldi	r25, 0xFF	; 255
+  82:	9a b9       	out	0x0a, r25	; 10
+	uint8_t resultado;
+	while(resultado <25){
+  84:	05 c0       	rjmp	.+10     	; 0x90 <main+0x10>
 	O argumento da função é um char pra não ocupar tanta 
 	memória. Caso seja '0', o timer é desligado. 
 	Caso seja '1', ele liga.
 */	
-	char pulsosTimer0;
-	TCCR0A = 0; // normal mode
-  80:	14 bc       	out	0x24, r1	; 36
-		TCCR0B = 0;
-		pulsosTimer0 = TCNT0;
-		return pulsosTimer0;
-	}
-	else{ // liga o timer
-		TCCR0B = 5; // prescaler = 1024	
-  82:	85 e0       	ldi	r24, 0x05	; 5
-  84:	85 bd       	out	0x25, r24	; 37
-	O argumento da função é um char pra não ocupar tanta 
-	memória. Caso seja '0', o timer é desligado. 
-	Caso seja '1', ele liga.
-*/	
-	char pulsosTimer0;
+	uint8_t pulsosTimer0;
 	TCCR0A = 0; // normal mode
   86:	14 bc       	out	0x24, r1	; 36
-	if (ligaDesliga == '0'){ // desliga o timer
+	if (ligaDesliga == 0){ // desliga o timer
 		TCCR0B = 0;
-  88:	15 bc       	out	0x25, r1	; 37
-		pulsosTimer0 = TCNT0;
-  8a:	86 b5       	in	r24, 0x26	; 38
-    while(resultado<20){
-		asm("nop");
-    }
-	resultado = controleTimer0('0');
-	return 0;
-}
-  8c:	80 e0       	ldi	r24, 0x00	; 0
-  8e:	90 e0       	ldi	r25, 0x00	; 0
-  90:	08 95       	ret
+	}
+	else{ // liga o timer
+		TCCR0B = 5; // prescaler = 1024
+  88:	85 e0       	ldi	r24, 0x05	; 5
+  8a:	85 bd       	out	0x25, r24	; 37
+	}
+	
+	pulsosTimer0 = TCNT0;
+  8c:	86 b5       	in	r24, 0x26	; 38
+	// a configuração a seguir, de port, é só pra teste
+	DDRD = 0xFF;
+	uint8_t resultado;
+	while(resultado <25){
+		resultado = controleTimer0(1);
+		PORTD = resultado;
+  8e:	8b b9       	out	0x0b, r24	; 11
 
-00000092 <_exit>:
-  92:	f8 94       	cli
+int main(void){
+	// a configuração a seguir, de port, é só pra teste
+	DDRD = 0xFF;
+	uint8_t resultado;
+	while(resultado <25){
+  90:	89 31       	cpi	r24, 0x19	; 25
+  92:	c8 f3       	brcs	.-14     	; 0x86 <main+0x6>
+	O argumento da função é um char pra não ocupar tanta 
+	memória. Caso seja '0', o timer é desligado. 
+	Caso seja '1', ele liga.
+*/	
+	uint8_t pulsosTimer0;
+	TCCR0A = 0; // normal mode
+  94:	14 bc       	out	0x24, r1	; 36
+	if (ligaDesliga == 0){ // desliga o timer
+		TCCR0B = 0;
+  96:	15 bc       	out	0x25, r1	; 37
+	}
+	else{ // liga o timer
+		TCCR0B = 5; // prescaler = 1024
+	}
+	
+	pulsosTimer0 = TCNT0;
+  98:	86 b5       	in	r24, 0x26	; 38
+		resultado = controleTimer0(1);
+		PORTD = resultado;
+	}
+	while(1){
+		resultado = controleTimer0(0);
+		PORTD = resultado;		
+  9a:	8b b9       	out	0x0b, r24	; 11
+  9c:	fb cf       	rjmp	.-10     	; 0x94 <main+0x14>
 
-00000094 <__stop_program>:
-  94:	ff cf       	rjmp	.-2      	; 0x94 <__stop_program>
+0000009e <_exit>:
+  9e:	f8 94       	cli
+
+000000a0 <__stop_program>:
+  a0:	ff cf       	rjmp	.-2      	; 0xa0 <__stop_program>
