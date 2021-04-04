@@ -17,7 +17,7 @@ volatile uint8_t statusBotoes[3] = {0,0,0};
 uint8_t EN = 0;
 uint8_t mode;
 uint16_t detectPot = 0;
-uint16_t freqPortadora = 5;
+uint16_t freqPortadora;
 
 //************** PROTOTIPOS DE FUNCOES *********************************
 static inline void run();
@@ -104,7 +104,7 @@ while(1){
 	
 		run();
 		AjusteModulacao();
-	//	AjustePortadora();
+		AjustePortadora();
 		
 }
 }
@@ -130,21 +130,12 @@ EnvioSucesso();
 	
 			while(statusBotoes[2] != 1){ // ENQUANTO O BOTAO P N FOR PRESSIONADO FICA NESSE LOOP
 			detectPot = lerPot();
-			selMode(detectPot);
-			//while(abs(detectPot - lastDetect) != 1){ // VERIFICA SE HOUVE MUDANCA NA LEITURA DO POT
-		//
-					//detectPot = lerPot();
-					//lastDetect = detectPot;	
-					//PORTD |= (1<<PD0);
-						//
-			//
-			//} // END LEITURA POT
-	  //
-	      //PORTD &= ~(1<<PD0);
+			//selMode(detectPot);
+			     
 		
-			//AtualizaModulcao();
+			AtualizaModulcao();
 
-	} // end P
+  	} // end P
 		 	
 			
 		}
@@ -164,15 +155,9 @@ static inline void AtualizaModulcao(){
 static inline void AjustePortadora(){
 	
 statusBotoes[2] = 0; // LIMPA A FLAG DO BOTAO P	
-static uint16_t lastDetectP;	
+
 	
-lastDetectP = lerPot();
-	
-	while(statusBotoes[1] != 1){ // Verifica se o botao R foi pressionado.
-		while(detectPot - lastDetectP > 0){
-			detectPot = lerPot();
-			lastDetectP = detectPot;
-		}
+while(statusBotoes[1] != 1){ // Verifica se o botao R foi pressionado.
 		
 valueP(AtualizaPortadora()); // para mostrar no display
 
@@ -184,7 +169,7 @@ static inline uint16_t AtualizaPortadora(){
 	EN = 1;
 	
 	Pot = lerPot();
-	freqPortadora = (((45/1023)*Pot) + 5);
+	freqPortadora = (((45.0/1023.0)*Pot) + 5);
 	
 	return freqPortadora;		
 }
