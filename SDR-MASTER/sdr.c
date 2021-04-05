@@ -19,7 +19,7 @@ uint8_t EN = 0;
 uint8_t mode;
 uint16_t detectPot = 0;
 uint16_t freqPortadora;
-long double t=0;
+double t=0;
 
 int sampleADC;
 int amostraPassadaCentradaEmZero = 0;
@@ -28,7 +28,7 @@ int analog;
 volatile float frequenciaCalculada = 666;
 int amostraCentradaEmZero = 0;
 volatile uint8_t valorTimer;
-
+volatile uint8_t flagInt = 0;
 //************** PROTOTIPOS DE FUNCOES *********************************
 static inline void run();
 
@@ -79,15 +79,18 @@ else if(mudanca_bits & (1 << PINC4)){
 	if (PINC & (1 << PINC4))statusBotoes[2] = 1; // BOTAO P
 }
 else if(mudanca_bits & (1 << PINC5)){
-		if (PINC & (1 << PINC5)){
+		if ((PINC & (1 << PINC5)) && flagInt == 0){
 			valorTimer = controleTimer0(1);
-			
+			PORTB |= (1<<PB0);
+			flagInt = 1;
 			} 
-			else {
+			else if((PINC & (1 << PINC5)) && flagInt == 1) {
 				
 				valorTimer =controleTimer0(0);
-				frequenciaCalculada = (4000000.0/(valorTimer*1024.0));
+				frequenciaCalculada = (4000000.0/((valorTimer/2.0)*1024.0));
 				TCNT0 = 0;
+				PORTB &= ~(1<<PB0);
+				flagInt = 0;
 			}
 		}
 
@@ -106,7 +109,7 @@ initialPage();
 	
 //PC4 = P, PC3 = R PC2 = M
 DDRC &= (~(1<<PC4) |  ~(1<<PC3) |  ~(1<<PC2) | ~(1<<PC5)); // DEFINE COMO ENTRADA OS BOTÕES
-DDRC |= (1<<PC6);	
+
 
 // PB1 = led 
 PORTB &= ~(1 << PB1); // 0 - vermelho e 1 - azul
@@ -118,6 +121,7 @@ configuracaoADC();
 PORTC |= (1 << PORTC2); // PC2 = INPUT_PULLUP
 PORTC |= (1 << PORTC3); // PC3 = INPUT_PULLUP
 PORTC |= (1 << PORTC4); // PC4 = INPUT_PULLUP
+PORTC |= (1 << PORTC5); // PC5 = INPUT_PULLUP
 	
 PORTB &= ~(1<<PB0);	
 PCICR |= (1 << PCIE1); // Configura a chave PCINT do PORTC
@@ -134,16 +138,19 @@ PORTD &= ~(1<<PD0);
 
 
 while(1){
-	//sampleADC = conversaoADC('0');
-	//PORTD = FM_r2rEntrada(mapeamento(sampleADC), 1, 500, t);
+	//valueF(frequenciaCalculada);
+//	sampleADC = conversaoADC('0');
+//	PORTD = FM_r2rEntrada(mapeamento(sampleADC), 1, 1000, t);
+//	PORTD = FM_r2rEntrada(mapeamento(sampleADC), 10, 300, t);
 	//PORTD = ASK_r2rEntrada(mapeamento(sampleADC), 1, 500,  t);
 	//PORTD = FSK_r2rEntrada(mapeamento(sampleADC), 1, 500,  t);
-	//t+=0.0000125;
+	//t+=0.000125;
 	//t+=0.000125;
 		run();
 		AjusteModulacao();
 		AjustePortadora();
-		
+	
+	
 }
 }
 
@@ -213,9 +220,12 @@ static inline uint16_t AtualizaPortadora(){
 static inline void EnvioSucesso(){
 	PORTB |= (1 << PB1); // led azul
 	
-valueF(frequenciaCalculada);	
+valueF(10);	
+if( mode == 0 || mode == 1) valueMsgAnalog(mapeamento(sampleADC));
+else if( mode == 2 || mode == 3) valueMsgDigital(mapeamento(sampleADC));
 while (statusBotoes[0] != 1) // enquanto o botao M n for pressionado.
 {
+	
 	
 	
 	sampleADC = conversaoADC('0');	
@@ -225,6 +235,7 @@ while (statusBotoes[0] != 1) // enquanto o botao M n for pressionado.
 		
 		case 0:
 		PORTD = AM_r2rEntrada(mapeamento(sampleADC), 1000,  t);
+		
 		break;
 		case 1:
 		PORTD = FM_r2rEntrada(mapeamento(sampleADC), 1, 1000, t);
@@ -238,7 +249,7 @@ while (statusBotoes[0] != 1) // enquanto o botao M n for pressionado.
 	}
 	
 	t+=0.000125;
-	
+	if(t > 1) t = 0;	
 }
 }
 
@@ -274,7 +285,8 @@ static inline int AM_r2rEntrada(uint8_t s_t, int fc, double t){
 }
 static inline int FM_r2rEntrada(uint8_t s_t, int fm, int fc, double t){ //  ta usndo o int fm
 	static float s=0;
-	s = sin(2*M_PI*fc*t + ((1/1)*(s_t/127.5-1)*2*M_PI*t));
+	s = sin(2*M_PI*fc*t + (((s_t/127.5)-1)*2*M_PI*t));
+	
 	
 	return  128 + (int)(127.5 * s);
 }
@@ -291,12 +303,12 @@ static inline int ASK_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
 	return s;
 }
 static inline int FSK_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
-	float s=0;
+	static float s=0;
 	if(s_t > 128){
 		s = 128 + (127.5 * sin(2*M_PI*fc*t));
 	}
 	else{
-		s = 128 + (127.5 * sin(2*M_PI*(fc/10)*t));
+		s = 128 + (127.5 * sin(2*M_PI*(fc/5)*t));
 	}
 	return s;
 }
