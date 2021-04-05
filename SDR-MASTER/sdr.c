@@ -220,7 +220,7 @@ static inline uint16_t AtualizaPortadora(){
 static inline void EnvioSucesso(){
 	PORTB |= (1 << PB1); // led azul
 	
-valueF(10);	
+valueF(frequenciaCalculada);	
 if( mode == 0 || mode == 1) valueMsgAnalog(mapeamento(sampleADC));
 else if( mode == 2 || mode == 3) valueMsgDigital(mapeamento(sampleADC));
 while (statusBotoes[0] != 1) // enquanto o botao M n for pressionado.
