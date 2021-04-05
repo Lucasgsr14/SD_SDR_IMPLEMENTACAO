@@ -5,6 +5,7 @@
 * Authores : kaike, vinicius, samuel, mateus, lucas
 */
 
+
 //******************* INCLUSÃO DE BIBLIOTECAS ***************************
 #include <math.h>
 #include <avr/io.h>
@@ -21,6 +22,12 @@ uint16_t freqPortadora;
 double t=0;
 
 int sampleADC;
+int amostraPassadaCentradaEmZero = 0;
+uint8_t flagPassagemPorZero=0;
+int analog;
+volatile float frequenciaCalculada = 666;
+int amostraCentradaEmZero = 0;
+volatile uint8_t valorTimer;
 //************** PROTOTIPOS DE FUNCOES *********************************
 static inline void run();
 
@@ -44,9 +51,10 @@ static inline int ASK_r2rEntrada(uint8_t s_t, int fm, int fc, double t);
 static inline int FSK_r2rEntrada(uint8_t s_t, int fm, int fc, double t);
 static inline uint8_t mapeamento(uint16_t amostraAD);
 
+volatile inline uint8_t controleTimer0( uint8_t ligaDesliga);
 static inline void configuracaoADC();
 static inline int conversaoADC(char canal);
-
+static inline float leituraFrequencia(int amostra);
 //************* VETOR DE INTERRUPCAO PCINT PARA OS BOTOES **************************
 ISR(PCINT1_vect) { // Vetor de Interrupçao do PORTC
 	
@@ -68,8 +76,18 @@ else if(mudanca_bits & (1 << PINC3)){
 }
 else if(mudanca_bits & (1 << PINC4)){
 	if (PINC & (1 << PINC4))statusBotoes[2] = 1; // BOTAO P
-	
-	
+}
+else if(mudanca_bits & (1 << PINC5)){
+		if (PINC & (1 << PINC5)){
+			valorTimer = controleTimer0(1);
+			
+			} 
+			else {
+				
+				valorTimer =controleTimer0(0);
+				frequenciaCalculada = (4000000.0/(valorTimer*1024.0));
+				TCNT0 = 0;
+			}
 }
 
 
@@ -78,16 +96,17 @@ else if(mudanca_bits & (1 << PINC4)){
 int main(void)
 {	   
 cli();	
-	
+CLKPR |= (1<<CLKPCE)|(1<<CLKPS1);	
 DDRB = 0xFF; 
 DDRD = 0xFF;
-	
+
+
 setLCD();
 initialPage();
 	
 //PC4 = P, PC3 = R PC2 = M
-DDRC &= (~(1<<PC4) |  ~(1<<PC3) |  ~(1<<PC2)); // DEFINE COMO ENTRADA OS BOTÕES
-DDRC |= (1<<PC5);	
+DDRC &= (~(1<<PC4) |  ~(1<<PC3) |  ~(1<<PC2) | ~(1<<PC5)); // DEFINE COMO ENTRADA OS BOTÕES
+//DDRC |= (1<<PC5);	
 
 // PB1 = led 
 PORTB &= ~(1 << PB1); // 0 - vermelho e 1 - azul
@@ -104,7 +123,7 @@ PORTC |= (1 << PORTC4); // PC4 = INPUT_PULLUP
 PCICR |= (1 << PCIE1); // Configura a chave PCINT do PORTC
 	
 //ativa a interrupcao no pinos PC2, PC3 e PC4.
-PCMSK1 |= (1 << PCINT10) | (1 << PCINT11) | (1 << PCINT12);
+PCMSK1 |= (1 << PCINT10) | (1 << PCINT11) | (1 << PCINT12) | (1 << PCINT13);
 
 ultimaLeitura_PINC = PINC;	// guarda a leitura inicial do PORTC
 	
@@ -190,8 +209,9 @@ static inline uint16_t AtualizaPortadora(){
 static inline void EnvioSucesso(){
 	PORTB |= (1 << PB1); // led azul
 	PORTC |= (1<<PC5);
-	sampleADC = conversaoADC('0');
-	
+	//sampleADC = conversaoADC('0');
+	//frequenciaCalculada = leituraFrequencia(sampleADC);
+	valueF(frequenciaCalculada);
 	switch(mode){
 		
 		case 0: 
@@ -203,17 +223,18 @@ static inline void EnvioSucesso(){
 		
 		break;
 		case 2:
-		PORTD = ASK_r2rEntrada(mapeamento(sampleADC), 1, 10, t);
+		PORTD = ASK_r2rEntrada(mapeamento(sampleADC), 50, 1000, t);
 		
 		break;
 		case 3:
-		PORTD = FSK_r2rEntrada(mapeamento(sampleADC), 1, 100, t);
+		PORTD = FSK_r2rEntrada(mapeamento(sampleADC), 1, 200, t);
 		
 		break;
 				
 	}
-	//t+=0.000125;// AM
-	 t+=0.000525;
+	t+=0.000125;// AM
+	// t+=0.000525; // FM
+	//t+=0.000475; // ASK
 	
 }
 
@@ -249,17 +270,19 @@ static inline int AM_r2rEntrada(uint8_t s_t, int fc, double t){
 static inline int FM_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
 	float s=0;
 	s = sin(2*M_PI*fc*t + (1/fm)*(s_t/127.5-1));
-	PORTC &= ~(1<<PC5);
+	
 	return  128 + (int)(127.5 * s);
 }
 static inline int ASK_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
 	float s=0;
 	if(s_t > 128){
 		s = 128 + (127.5 * sin(2*M_PI*fc*t));
+		//s =  (s_t/127.5) - 1;
 	}
 	else{
 		s = 127;
 	}
+	PORTC &= ~(1<<PC5);
 	return s;
 }
 static inline int FSK_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
@@ -323,3 +346,54 @@ Espera-se concluir e retorna-se o valor inteiro.
 	valor_convertido = ADC;
 	return valor_convertido;
 }
+
+volatile inline uint8_t controleTimer0( uint8_t ligaDesliga){
+/*
+	A função controleTimer0 serve pra controle do Timer0.
+	O argumento da função é um char pra não ocupar tanta 
+	memória. Caso seja '0', o timer é desligado. 
+	Caso seja '1', ele liga.
+*/	
+	uint8_t pulsosTimer0;
+	TCCR0A = 0; // normal mode
+	if (ligaDesliga == 0){ // desliga o timer
+		TCCR0B = 0;
+	}
+	else{ // liga o timer
+		TCCR0B = 5; // prescaler = 1024
+	}
+	
+	pulsosTimer0 = TCNT0;
+	return pulsosTimer0;
+}
+
+static inline float leituraFrequencia(int amostra){
+	
+	
+	
+	
+	
+////	float frequencia = -1;
+	////amostraCentradaEmZero = amostra - (1024/2);
+	//uint8_t valorTimer = 0;
+////	(amostraCentradaEmZero*amostraPassadaCentradaEmZero < 0)
+	//if((amostra<=512) && (flagPassagemPorZero == 0)){
+		//flagPassagemPorZero = 1;
+		//valorTimer = controleTimer0(1);
+		////PORTB = 0;
+	//}
+	//else{ 
+		//if((amostra>=512)&&(flagPassagemPorZero == 1)){
+			//valorTimer = controleTimer0(0);
+			////frequenciaCalculada = 1.0/(2.0*valorTimer*2000000.0);
+			//frequenciaCalculada = (1000000.0/(2*valorTimer*1024.0));
+			//TCNT0 = 0;
+			//flagPassagemPorZero = 0;
+			////PORTB = 0;
+		//}
+	//}
+//
+	//amostraPassadaCentradaEmZero = amostraCentradaEmZero;
+	//return frequenciaCalculada;	
+}
+
