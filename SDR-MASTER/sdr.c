@@ -19,7 +19,7 @@ uint8_t EN = 0;
 uint8_t mode;
 uint16_t detectPot = 0;
 uint16_t freqPortadora;
-double t=0;
+long double t=0;
 
 int sampleADC;
 int amostraPassadaCentradaEmZero = 0;
@@ -28,6 +28,7 @@ int analog;
 volatile float frequenciaCalculada = 666;
 int amostraCentradaEmZero = 0;
 volatile uint8_t valorTimer;
+
 //************** PROTOTIPOS DE FUNCOES *********************************
 static inline void run();
 
@@ -88,8 +89,7 @@ else if(mudanca_bits & (1 << PINC5)){
 				frequenciaCalculada = (4000000.0/(valorTimer*1024.0));
 				TCNT0 = 0;
 			}
-}
-
+		}
 
 }
 
@@ -106,7 +106,7 @@ initialPage();
 	
 //PC4 = P, PC3 = R PC2 = M
 DDRC &= (~(1<<PC4) |  ~(1<<PC3) |  ~(1<<PC2) | ~(1<<PC5)); // DEFINE COMO ENTRADA OS BOTÕES
-//DDRC |= (1<<PC5);	
+DDRC |= (1<<PC6);	
 
 // PB1 = led 
 PORTB &= ~(1 << PB1); // 0 - vermelho e 1 - azul
@@ -119,7 +119,7 @@ PORTC |= (1 << PORTC2); // PC2 = INPUT_PULLUP
 PORTC |= (1 << PORTC3); // PC3 = INPUT_PULLUP
 PORTC |= (1 << PORTC4); // PC4 = INPUT_PULLUP
 	
-	
+PORTB &= ~(1<<PB0);	
 PCICR |= (1 << PCIE1); // Configura a chave PCINT do PORTC
 	
 //ativa a interrupcao no pinos PC2, PC3 e PC4.
@@ -134,14 +134,18 @@ PORTD &= ~(1<<PD0);
 
 
 while(1){
-	
+	//sampleADC = conversaoADC('0');
+	//PORTD = FM_r2rEntrada(mapeamento(sampleADC), 1, 500, t);
+	//PORTD = ASK_r2rEntrada(mapeamento(sampleADC), 1, 500,  t);
+	//PORTD = FSK_r2rEntrada(mapeamento(sampleADC), 1, 500,  t);
+	//t+=0.0000125;
+	//t+=0.000125;
 		run();
 		AjusteModulacao();
 		AjustePortadora();
 		
 }
 }
-
 
 static inline void run(){
 statusBotoes[1] = 0;// limpa a flag do botao R	
@@ -208,34 +212,34 @@ static inline uint16_t AtualizaPortadora(){
 
 static inline void EnvioSucesso(){
 	PORTB |= (1 << PB1); // led azul
-	PORTC |= (1<<PC5);
-	//sampleADC = conversaoADC('0');
-	//frequenciaCalculada = leituraFrequencia(sampleADC);
-	valueF(frequenciaCalculada);
+	
+valueF(frequenciaCalculada);	
+while (statusBotoes[0] != 1) // enquanto o botao M n for pressionado.
+{
+	
+	
+	sampleADC = conversaoADC('0');	
+	//PORTD = FM_r2rEntrada(mapeamento(sampleADC), 1, 500, t);
+	
 	switch(mode){
 		
-		case 0: 
-		PORTD = AM_r2rEntrada(mapeamento(sampleADC), 10,  t);
-		
+		case 0:
+		PORTD = AM_r2rEntrada(mapeamento(sampleADC), 1000,  t);
 		break;
 		case 1:
-		PORTD = FM_r2rEntrada(mapeamento(sampleADC), 1, 10, t);
-		
+		PORTD = FM_r2rEntrada(mapeamento(sampleADC), 1, 1000, t);
 		break;
 		case 2:
 		PORTD = ASK_r2rEntrada(mapeamento(sampleADC), 50, 1000, t);
-		
 		break;
 		case 3:
-		PORTD = FSK_r2rEntrada(mapeamento(sampleADC), 1, 200, t);
-		
+		PORTD = FSK_r2rEntrada(mapeamento(sampleADC), 1, 1000, t);
 		break;
-				
 	}
-	t+=0.000125;// AM
-	// t+=0.000525; // FM
-	//t+=0.000475; // ASK
 	
+	t+=0.000125;
+	
+}
 }
 
 static inline uint16_t lerPot()
@@ -261,15 +265,16 @@ static inline uint8_t mapeamento(uint16_t amostraAD){
 	return (255.0*amostraAD/1023.0);
 }
 static inline int AM_r2rEntrada(uint8_t s_t, int fc, double t){
-	float s=0;
+	static float s=0;
 	s = (s_t/127.5-1) * sin(2*M_PI*fc*t);
 	//cout<<"cos(sinalSenoidal): "<<s_t/255.0<<" tempo: "<<t<<'\n';
 	//cout<<"cos: "<<cos(2*M_PI*fc*t)<<" interior: "<<2*M_PI*fc*t<<" tempo: "<<t<<'\n';
+	
 	return  (128 + (127.5 * s));
 }
-static inline int FM_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
-	float s=0;
-	s = sin(2*M_PI*fc*t + (1/fm)*(s_t/127.5-1));
+static inline int FM_r2rEntrada(uint8_t s_t, int fm, int fc, double t){ //  ta usndo o int fm
+	static float s=0;
+	s = sin(2*M_PI*fc*t + ((1/1)*(s_t/127.5-1)*2*M_PI*t));
 	
 	return  128 + (int)(127.5 * s);
 }
@@ -309,9 +314,9 @@ conversaoADC().
     ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (0<<MUX3) | (0<<MUX2) | (0<<MUX1) | (0<<MUX0);
 
     /* Set conversion time to 
-	104usec	= [(1/2MHz/16)*(13 ADC clocks per conversion)]
+	104usec	= [(1/8MHz/64)*(13 ADC clocks per conversion)]
      and enable the ADC*/
-    ADCSRA = (1<<ADPS2) | (1<<ADPS1) | (1<<ADEN);
+    ADCSRA = (1<<ADPS2) | (1<<ADPS1) | (1<<ADEN); // 0000 0000
 
     /* Perform Dummy Conversion to complete ADC init */
     ADCSRA |= (1<<ADSC);
@@ -368,11 +373,7 @@ volatile inline uint8_t controleTimer0( uint8_t ligaDesliga){
 }
 
 static inline float leituraFrequencia(int amostra){
-	
-	
-	
-	
-	
+		
 ////	float frequencia = -1;
 	////amostraCentradaEmZero = amostra - (1024/2);
 	//uint8_t valorTimer = 0;
