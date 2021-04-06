@@ -291,12 +291,10 @@ static inline int ASK_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
 	float s=0;
 	if(s_t > 128){
 		s = 128 + (127.5 * sin(2*M_PI*fc*t));
-		//s =  (s_t/127.5) - 1;
 	}
 	else{
 		s = 127;
 	}
-	PORTC &= ~(1<<PC5);
 	return s;
 }
 static inline int FSK_r2rEntrada(uint8_t s_t, int fm, int fc, double t){
