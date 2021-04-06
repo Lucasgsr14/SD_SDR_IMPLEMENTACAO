@@ -278,15 +278,12 @@ static inline uint8_t mapeamento(uint16_t amostraAD){
 static inline int AM_r2rEntrada(uint8_t s_t, int fc, double t){
 	static float s=0;
 	s = (s_t/127.5-1) * sin(2*M_PI*fc*t);
-	//cout<<"cos(sinalSenoidal): "<<s_t/255.0<<" tempo: "<<t<<'\n';
-	//cout<<"cos: "<<cos(2*M_PI*fc*t)<<" interior: "<<2*M_PI*fc*t<<" tempo: "<<t<<'\n';
 	
 	return  (128 + (127.5 * s));
 }
 static inline int FM_r2rEntrada(uint8_t s_t, int fm, int fc, double t){ //  ta usndo o int fm
 	static float s=0;
 	s = sin(2*M_PI*fc*t + (((s_t/127.5)-1)*2*M_PI*t));
-	
 	
 	return  128 + (int)(127.5 * s);
 }
